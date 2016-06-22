@@ -3,8 +3,9 @@
 import sys
 
 def help():
-	print "Syntax: python radascreen_tap.py <input bmp file> <output tap file>"
-	print "        Example: python radascreen_tap.py knigthRider.bmp krider.tap"
+	print "Syntax: python output_tap.py <input bmp file> <output tap file> [loader file]"
+	print "        Example: python output_tap.py knigthRider.bmp krider.tap"
+	print "        Example: python output_tap.py knigthRider.bmp krider.tap alternative_loader.tap"
 	sys.exit(1)
 
 def error(str):	
@@ -12,11 +13,16 @@ def error(str):
 	sys.exit(1)
 
 print "Radastanian mode BMP converter (C) Uto 2016"
-if len(sys.argv)==3 :
+if len(sys.argv) in [3,4]:
 	inputfile = sys.argv[1]
 	outputfile = sys.argv[2]
 else:
 	help()
+
+if len(sys.argv)==4:
+	loader_file = sys.argv[3]
+else:
+	loader_file = 'loader.tap'
 
 print 'Converting ' ,inputfile, ' => ',outputfile
 
@@ -66,43 +72,47 @@ while linesProcessed<96:
 	linesProcessed += 1
 	screenPointer-=64
 
-# Load the radascreen_tap.tap file
-radascreen_tap=[]
+# Load the loader.tap file
+output_tap=[]
 try:
-	f = open('radascreen.tap', "rb")
+	f = open(loader_file, "rb")
 except:
-	error('radascreen.tap file missing.')	
-
+	error('loader file [',loader_file,'] missing.')	
 try:
     byte = f.read(1)
     while byte != "":
-        radascreen_tap.append(ord(byte))
+        output_tap.append(ord(byte))
         byte = f.read(1)
 finally:
     f.close()
 
-# Replace palette
-for i in range(16):
-	radascreen_tap[len(radascreen_tap) -1 -1 -i] = palette[15-i] # -1 twice, once because last elemnt it's allways array length -1, and twice cause last byte in tap file blocks is checksum, not data
+screenpos = len(output_tap)
+		
+# The screen block header for tap file, a header, plus the start of data code (last 0xff)
+screen_header = [0x13,0x00,0x00,0x03,0x53,0x43,0x52,0x45,0x45,0x4e,0x20,0x20,0x20,0x20,0x10,0x18,0x00,0x40,0x00,0x80,0xc7,0x12,0x18,0xff]
 
-# Replace image
-for i in range (6144):
-	radascreen_tap[len(radascreen_tap) -1 -1 -16 -i] = screen[6143-i] ## Again, -1 twice, and -16 for the palette
+#Add screen header
+output_tap.extend(screen_header)
+output_tap.extend(screen)
+output_tap.extend(palette)
 
-#calculate new checksum	
-checksum = 0
-for i in range(6144 + 16 + 1):   # 6144 data, 16 palette, 1 for flag byte (FF in not header block in tap file)
-	checksum = checksum ^ radascreen_tap[len(radascreen_tap) -1 -1 - i]   ## Once more, -1 twice to avoid the checksum itself
-radascreen_tap[len(radascreen_tap) -1]	=checksum
+#calculate and append checksum (XOR of flag byte and all the screen and palette contents)
+checksum = 0xff #flag byte
+for byte in screen:
+	checksum = checksum ^ byte
+for byte in palette:
+	checksum = checksum ^ byte	
+output_tap.append(checksum)
 
-# Save updated tap file
+
+# Save tap file
 try:
 	f = open(outputfile, "wb")
 except:
 	error("Could not open output file ", outputfile, '.')	
 
 try:
-	for i in radascreen_tap:
+	for i in output_tap:
 		f.write(chr(i))	
 finally:
     f.close()
