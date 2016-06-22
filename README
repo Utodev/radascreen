@@ -1,9 +1,12 @@
 Rasdascreen (C) Uto 2016
+BMP to Radastan mode .tap converter for ZX-Uno
+
 This software is open source, and is licensed under the GPL v3 or above license 
 
 REQUIREMENTS:
 
 - This software requires python interpreter, please refer to Python documentation to find how to install for your OS. 
+
 - The Python script has been created using Python 2.7, there is a chance that it doesn't work on older or newer versions.
 
 USAGE:
@@ -11,12 +14,24 @@ USAGE:
 1) Create a 128x96 image, with 16 colors (4 bpp), save it as uncompressed BMP file (make sure you save it as 16 colors BMP file). Save it where you uncompressed radascreen
 2) Run:  python radascreen.py <bmp name> <tap name>. i.e.: python radascreen.py strawberryfields.bmp strawberryfields.tap
 
+Alternatively, you can use another loader file by adding it as 3rd parameter
+
+python radascreen.py <bmp name> <tap name> [loader]
+
+i.e.
+python radascreen.py gravity.bmp gravity.tap new_loader.tap
+
+The alternative loader should be a tap file with a program that, un the order you prefer, does at least:
+
+- Set the radastan mode
+- Loads a 6160 bytes code block which will have 6144 bytes per pixel contents, plus 16 bytes for palette
+- Place the 6144 bytes at address 16384 (or switches banks) and sets the palette
+
 Common issues:
 
 - The converter says file size is incorrect: Make sure you saved the BMP file as uncompressed, 16 colors (4bpp) and your image size is 128x96.
 
-- Everything goes fine, but the picture doesn't show, I only see garbage on screen: First of all, make sure you are trying this on a ZX-Uno, Radastanian mode is only avaliable in that computer. if you are using a ZX-Uno, try to enter this just after booting:
-
+- Everything goes fine, but the picture doesn't show, I only see garbage on screen: First of all, make sure you are trying this on a ZX-Uno, radastan mode is only avaliable in that computer. if you are using a ZX-Uno, try to enter this just after booting:
 
 OUT 48955,64 
 OUT 65339,3
@@ -25,12 +40,7 @@ If ater the second OUT you see the "OK" message, then there is a chance what is 
 
 https://translate.google.es/translate?sl=es&tl=en&js=y&prev=_t&hl=es&ie=UTF-8&u=http%3A%2F%2Fwww.zxuno.com%2Fforum%2Fviewtopic.php%3Ff%3D14%26t%3D390&edit-text=&act=url
 
-What you need to do then is find the new way to activate the radastanian mode, and then:
-
-1) Modify the "LOADER.BAS" file to change radastanian mode activation.
-2) Download BAS2TAP and install
-3) Edit the BUILD.TAP file to point BAS2TAP call to where your BAS2TAP executable is.
-4) Run BUILD.TAP to obtain a new radascreen.tap properly patched
+In that case, try to use the new_loader.tap as loader (as describer above)
 
 About the author
 
