@@ -3,26 +3,42 @@
 import sys
 
 def help():
-	print "Syntax: python output_tap.py <input bmp file> <output tap file> [loader file]"
+	print "Syntax: python output_tap.py <input bmp file> <output tap file> [loader file] [/p] [/v]"
 	print "        Example: python output_tap.py knigthRider.bmp krider.tap"
-	print "        Example: python output_tap.py knigthRider.bmp krider.tap alternative_loader.tap"
+	print "        Example: python output_tap.py knigthRider.bmp krider.tap alternative_loader.tap /p"
+	print ""
+	print "        /p uses proportional method instead of truncate method to interpolate palette colors"
+	print "        /v verbose mode"
 	sys.exit(1)
 
 def error(str):	
 	print "Error: ", str
 	sys.exit(1)
 
-print "Radastanian mode BMP converter (C) Uto 2016"
-if len(sys.argv) in [3,4]:
+print "Radasta mode BMP converter (C) Uto 2016 v0.2"
+
+if len(sys.argv) > 2:
 	inputfile = sys.argv[1]
 	outputfile = sys.argv[2]
 else:
 	help()
 
-if len(sys.argv)==4:
-	loader_file = sys.argv[3]
-else:
-	loader_file = 'loader.tap'
+# defaults
+palette_method = 'truncate'
+loader_file = 'loader.tap'
+verbose = 0
+
+# Check extra arguments
+i = 3
+while i < len(sys.argv) :
+	if sys.argv[i]=='/p':
+		palette_method = 'proportional'
+	else:
+		if sys.argv[i]=='/v':
+			verbose = 1
+		else:
+			loader_file = sys.argv[i]
+	i+=1
 
 print 'Converting ' ,inputfile, ' => ',outputfile
 
@@ -50,15 +66,27 @@ if len(bmp)!= 6262:
 # Extract palette and convert to RRRGGGBB 
 palette = []
 index = 0
+if verbose:
+	print "Palette interpolation: ", palette_method
 while index<=15 :
 	B = bmp[0x36 + index * 4]
 	G = bmp[0x36 + index * 4 + 1]
 	R = bmp[0x36 + index * 4 + 2]
 	# A = bmp[0x36 + index * 4 + 3]
-	G = G & 0b11100000
-	B = (B >> 6) & 3
-	R = (R >> 3) & 0b00011100
-	RGB = R+G+B
+	if (palette_method=='truncate'):
+		G = G & 0b11100000
+		B = (B >> 6) & 3
+		R = (R >> 3) & 0b00011100
+		RGB = R+G+B
+		if verbose:
+			print "COLOR ", index, ' ==> (', R>>2,',',G>>5,',',B,') ',RGB
+	else:
+		R = int(round(R * 7 / 255))
+		G = int(round(G * 7 / 255))
+		B = int(round(B * 3 / 255))
+		RGB = (G << 5) + (R << 2) + B
+		if verbose:
+			print "COLOR ", index, ' ==> (', R,',',G,',',B,') ',RGB
 	palette.append(RGB)
 	index+=1
 
